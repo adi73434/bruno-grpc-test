@@ -111,14 +111,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
-        {
-          /* TODO: Support other data types that require user-defined types */
-          bodyMode === 'proto' ? (
-            <div className={getTabClassname('dataParsing')} role="tab" onClick={() => selectTab('dataParsing')}>
-              Data Parsing
-            </div>
-          ) : null
-        }
+        {/* TODO: Support other data types that require user-defined types */}
+        <div className={getTabClassname('dataParsing')} role="tab" onClick={() => selectTab('dataParsing')}>
+          Data Parsing
+        </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
           {response.headers?.length > 0 && <sup className="ml-1 font-medium">{response.headers.length}</sup>}

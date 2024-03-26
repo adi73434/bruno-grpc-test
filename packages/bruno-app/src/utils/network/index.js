@@ -1,8 +1,10 @@
 import { safeStringifyJSON } from 'utils/common';
 
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
+  console.error('sendNetworkRequest');
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
+      console.error('before sendHttpRequest');
       sendHttpRequest(item, collection, environment, collectionVariables)
         .then((response) => {
           resolve({
@@ -23,6 +25,7 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
 };
 
 const sendHttpRequest = async (item, collection, environment, collectionVariables) => {
+  console.error('sendHttpRequest');
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 

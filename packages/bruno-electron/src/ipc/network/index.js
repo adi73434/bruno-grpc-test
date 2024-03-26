@@ -421,6 +421,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
+    console.error('send-http-request');
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -436,7 +437,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot, collectionPath);
+    const axiosRequest = prepareRequest(_request, collectionRoot, collectionPath);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -444,11 +445,11 @@ const registerNetworkIpc = (mainWindow) => {
 
     try {
       const controller = new AbortController();
-      request.signal = controller.signal;
+      axiosRequest.signal = controller.signal;
       saveCancelToken(cancelTokenUid, controller);
 
       await runPreRequest(
-        request,
+        axiosRequest,
         requestUid,
         envVars,
         collectionPath,
@@ -462,10 +463,10 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
-          url: request.url,
-          method: request.method,
-          headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          url: axiosRequest.url,
+          method: axiosRequest.method,
+          headers: axiosRequest.headers,
+          data: safeParseJSON(safeStringifyJSON(axiosRequest.data)),
           timestamp: Date.now()
         },
         collectionUid,
@@ -476,7 +477,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const axiosInstance = await configureRequest(
         collectionUid,
-        request,
+        axiosRequest,
         envVars,
         collectionVariables,
         processEnvVars,
@@ -486,7 +487,7 @@ const registerNetworkIpc = (mainWindow) => {
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+        response = await axiosInstance(axiosRequest);
 
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
@@ -529,7 +530,7 @@ const registerNetworkIpc = (mainWindow) => {
             : [response.headers['set-cookie']];
           for (let setCookieHeader of setCookieHeaders) {
             if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
+              addCookieToJar(setCookieHeader, axiosRequest.url);
             }
           }
         }
@@ -541,7 +542,7 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
-        request,
+        axiosRequest,
         response,
         requestUid,
         envVars,
@@ -554,12 +555,12 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       // run assertions
-      const assertions = get(request, 'assertions');
+      const assertions = get(axiosRequest, 'assertions');
       if (assertions) {
         const assertRuntime = new AssertRuntime();
         const results = assertRuntime.runAssertions(
           assertions,
-          request,
+          axiosRequest,
           response,
           envVars,
           collectionVariables,
@@ -584,7 +585,7 @@ const registerNetworkIpc = (mainWindow) => {
         const testRuntime = new TestRuntime();
         const testResults = await testRuntime.runTests(
           decomment(testFile),
-          request,
+          axiosRequest,
           response,
           envVars,
           collectionVariables,

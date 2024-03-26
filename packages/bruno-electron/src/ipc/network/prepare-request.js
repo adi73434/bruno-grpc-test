@@ -4,6 +4,7 @@ var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const protobuf = require('protobufjs');
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -141,6 +142,49 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
+const encodeProtobuf = (request, collectionPath) => {
+  const jsonWithProtoMetadata = JSON.parse(request.body.proto);
+
+  // jsonWithProtoMetadata[0] = file.proto::ProtobufPackage.ProtobufMessage
+  const firstFieldKey = Object.keys(jsonWithProtoMetadata)[0];
+  const metaFields = firstFieldKey.split('::');
+  if (metaFields.length !== 2) {
+    // TODO: Airi Pretty error
+    throw 'Incorrect protobuf metadata format (expected: "file.proto::Package.Message")';
+  }
+
+  let protoRoot;
+  let protobufEncoder;
+
+  try {
+    // NOTE: Can be async
+    protoRoot = protobuf.loadSync(collectionPath + '/proto/' + metaFields[0]);
+  } catch (e) {
+    // TODO: Airi Pretty error
+    throw "Provided protobuf file doesn't exist";
+  }
+
+  try {
+    protobufEncoder = protoRoot.lookupType(metaFields[1]);
+  } catch (e) {
+    // TODO: Airi Pretty error
+    throw "Provided protobuf package/message type doesn't exist";
+  }
+
+  // Everything inside of the "wrapper" (the protobuf descriptor)
+  const protoJsonAsObject = jsonWithProtoMetadata[firstFieldKey];
+
+  const errVerify = protobufEncoder.verify(protoJsonAsObject);
+  if (errVerify) {
+    // TODO: Airi Pretty error
+    throw 'Incorrect protobuf format (fields)';
+  }
+
+  const buffer = protobufEncoder.encode(protoJsonAsObject).finish();
+
+  return buffer;
+};
+
 const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
@@ -184,45 +228,43 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
-  }
+  } else if (request.body.mode === 'proto') {
+    if (!contentTypeDefined) {
+      // alternatively, "application/x-protobuf"
+      axiosRequest.headers['content-type'] = 'application/protobuf';
+    }
 
-  if (request.body.mode === 'text') {
+    const encodedBuffer = encodeProtobuf(request, collectionPath);
+
+    // TODO: Airi protobuf encode based on the given ProtoPackage.ProtoMessage
+    axiosRequest.data = encodedBuffer;
+  } else if (request.body.mode === 'text') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/plain';
     }
     axiosRequest.data = request.body.text;
-  }
-
-  if (request.body.mode === 'xml') {
+  } else if (request.body.mode === 'xml') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/xml';
     }
     axiosRequest.data = request.body.xml;
-  }
-
-  if (request.body.mode === 'sparql') {
+  } else if (request.body.mode === 'sparql') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/sparql-query';
     }
     axiosRequest.data = request.body.sparql;
-  }
-
-  if (request.body.mode === 'formUrlEncoded') {
+  } else if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     const params = {};
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.data = params;
-  }
-
-  if (request.body.mode === 'multipartForm') {
+  } else if (request.body.mode === 'multipartForm') {
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
-  }
-
-  if (request.body.mode === 'graphql') {
+  } else if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
       // https://github.com/usebruno/bruno/issues/884 - we must only parse the variables after the variable interpolation

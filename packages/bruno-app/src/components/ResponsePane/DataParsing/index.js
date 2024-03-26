@@ -10,7 +10,7 @@ const DataParsing = ({ bodyMode, item, collection }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dataParsing = item.draft ? get(item, 'draft.request.dataParsing') : get(item, 'request.dataParsing');
 
-  console.log(item);
+  // console.log(item);
 
   let codeMirrorMode = {
     proto: 'application/proto'
@@ -21,7 +21,7 @@ const DataParsing = ({ bodyMode, item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="pb-4 w-full">
+    <StyledWrapper className="w-full">
       <CodeEditor
         collection={collection}
         theme={displayedTheme}
