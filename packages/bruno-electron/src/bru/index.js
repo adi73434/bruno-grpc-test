@@ -45,6 +45,7 @@ const jsonToCollectionBru = (json) => {
         res: _.get(json, 'request.vars.req', [])
       },
       tests: _.get(json, 'request.tests', ''),
+      protoFilePaths: _.get(json, 'protoFilePaths', ''),
       docs: _.get(json, 'docs', '')
     };
 
@@ -115,6 +116,7 @@ const bruToJson = (bru) => {
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
+        dataParsing: _.get(json, 'dataParsing', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
@@ -123,6 +125,8 @@ const bruToJson = (bru) => {
       }
     };
 
+    // TODO: Airi: Might have to mimick this method that sets
+    // the body, and do something like dataParsingmode: http.dataParsing (or whatever)
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
 
@@ -166,6 +170,7 @@ const jsonToBru = (json) => {
     headers: _.get(json, 'request.headers', []),
     auth: _.get(json, 'request.auth', {}),
     body: _.get(json, 'request.body', {}),
+    dataParsing: _.get(json, 'request.dataParsing', {}),
     script: _.get(json, 'request.script', {}),
     vars: {
       req: _.get(json, 'request.vars.req', []),

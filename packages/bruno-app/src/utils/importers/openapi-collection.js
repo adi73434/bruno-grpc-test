@@ -77,10 +77,14 @@ const transformOpenapiRequestItem = (request) => {
       body: {
         mode: 'none',
         json: null,
+        proto: null,
         text: null,
         xml: null,
         formUrlEncoded: [],
         multipartForm: []
+      },
+      dataParsing: {
+        proto: null
       }
     }
   };

@@ -667,11 +667,16 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         body: body ?? {
           mode: 'none',
           json: null,
+          proto: null,
           text: null,
           xml: null,
           sparql: null,
           multipartForm: null,
           formUrlEncoded: null
+        },
+        // TODO: Support other data types that need user-definition
+        dataParsing: {
+          proto: null
         }
       }
     };

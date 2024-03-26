@@ -1,5 +1,6 @@
 import React from 'react';
 import find from 'lodash/find';
+import get from 'lodash/get';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -16,12 +17,16 @@ import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import DataParsing from './DataParsing/index';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
+
+  // bodyMode for the request
+  const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
 
   const selectTab = (tab) => {
     dispatch(
@@ -49,6 +54,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             key={item.filename}
           />
         );
+      }
+      case 'dataParsing': {
+        return <DataParsing bodyMode={bodyMode} item={item} collection={collection} />;
       }
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
@@ -103,6 +111,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
+        {
+          /* TODO: Support other data types that require user-defined types */
+          bodyMode === 'proto' ? (
+            <div className={getTabClassname('dataParsing')} role="tab" onClick={() => selectTab('dataParsing')}>
+              Data Parsing
+            </div>
+          ) : null
+        }
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
           {response.headers?.length > 0 && <sup className="ml-1 font-medium">{response.headers.length}</sup>}

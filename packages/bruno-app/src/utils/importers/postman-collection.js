@@ -107,10 +107,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             body: {
               mode: 'none',
               json: null,
+              proto: null,
               text: null,
               xml: null,
               formUrlEncoded: [],
               multipartForm: []
+            },
+            dataParsing: {
+              proto: null
             }
           }
         };
@@ -123,12 +127,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
               if (Array.isArray(event.script.exec)) {
                 brunoRequestItem.request.script.req = event.script.exec
-                  .map((line) => options.enablePostmanTranslations.enabled ?
-                    postmanTranslation(line) : `// ${line}`).join('\n')
+                  .map((line) => (options.enablePostmanTranslations.enabled ? postmanTranslation(line) : `// ${line}`))
+                  .join('\n');
               } else {
-                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled ?
-                  postmanTranslation(event.script.exec[0]) :
-                  `// ${event.script.exec[0]} `;
+                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
+                  ? postmanTranslation(event.script.exec[0])
+                  : `// ${event.script.exec[0]} `;
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
@@ -137,12 +141,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
               if (Array.isArray(event.script.exec)) {
                 brunoRequestItem.request.tests = event.script.exec
-                  .map((line) => options.enablePostmanTranslations.enabled ?
-                    postmanTranslation(line) : `// ${line}`).join('\n');
+                  .map((line) => (options.enablePostmanTranslations.enabled ? postmanTranslation(line) : `// ${line}`))
+                  .join('\n');
               } else {
-                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled ?
-                  postmanTranslation(event.script.exec[0]) :
-                  `// ${event.script.exec[0]} `;
+                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
+                  ? postmanTranslation(event.script.exec[0])
+                  : `// ${event.script.exec[0]} `;
               }
             }
           });

@@ -287,6 +287,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             params: copyQueryParams(si.draft.request.params),
             body: {
               mode: si.draft.request.body.mode,
+              proto: si.draft.request.body.proto,
               json: si.draft.request.body.json,
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
@@ -295,6 +296,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
+            dataParsing: si.draft.request.dataParsing,
             auth: {
               mode: get(si.draft.request, 'auth.mode', 'none'),
               basic: {
@@ -321,6 +323,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             body: {
               mode: si.request.body.mode,
               json: si.request.body.json,
+              proto: si.request.body.proto,
               text: si.request.body.text,
               xml: si.request.body.xml,
               graphql: si.request.body.graphql,
@@ -328,6 +331,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             },
+            dataParsing: si.request.dataParsing,
             auth: {
               mode: get(si.request, 'auth.mode', 'none'),
               basic: {
@@ -388,6 +392,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       headers: [],
       auth: _item.request.auth,
       body: _item.request.body,
+      dataParsing: _item.request.dataParsing,
       script: _item.request.script,
       vars: _item.request.vars,
       assertions: _item.request.assertions,
@@ -459,6 +464,10 @@ export const humanizeRequestBodyMode = (mode) => {
   switch (mode) {
     case 'json': {
       label = 'JSON';
+      break;
+    }
+    case 'proto': {
+      label = 'Proto';
       break;
     }
     case 'text': {

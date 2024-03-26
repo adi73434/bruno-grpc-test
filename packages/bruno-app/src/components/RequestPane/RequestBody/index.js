@@ -29,9 +29,10 @@ const RequestBody = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  if (['json', 'xml', 'text', 'sparql'].includes(bodyMode)) {
+  if (['json', 'proto', 'xml', 'text', 'sparql'].includes(bodyMode)) {
     let codeMirrorMode = {
       json: 'application/ld+json',
+      proto: 'application/proto',
       text: 'application/text',
       xml: 'application/xml',
       sparql: 'application/sparql-query'
@@ -39,6 +40,7 @@ const RequestBody = ({ item, collection }) => {
 
     let bodyContent = {
       json: body.json,
+      proto: body.proto,
       text: body.text,
       xml: body.xml,
       sparql: body.sparql

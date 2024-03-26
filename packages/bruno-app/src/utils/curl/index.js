@@ -27,6 +27,7 @@ export const getRequestFromCurlCommand = (curlCommand) => {
     const body = {
       mode: 'none',
       json: null,
+      proto: null,
       text: null,
       xml: null,
       sparql: null,

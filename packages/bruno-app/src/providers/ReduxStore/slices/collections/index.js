@@ -311,7 +311,8 @@ export const collectionsSlice = createSlice({
             body: {
               mode: null,
               content: null
-            }
+            },
+            dataParsing: {}
           },
           draft: null
         };
@@ -712,6 +713,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.json = action.payload.content;
               break;
             }
+            case 'proto': {
+              item.draft.request.body.proto = action.payload.content;
+              break;
+            }
             case 'text': {
               item.draft.request.body.text = action.payload.content;
               break;
@@ -730,6 +735,26 @@ export const collectionsSlice = createSlice({
             }
             case 'multipartForm': {
               item.draft.request.body.multipartForm = action.payload.content;
+              break;
+            }
+          }
+        }
+      }
+    },
+    updateRequestDataParsing: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          // TODO: Support other data types that need user-definition
+          switch (item.draft.request.body.mode) {
+            case 'proto': {
+              item.draft.request.dataParsing.proto = action.payload.content;
               break;
             }
           }
@@ -1029,6 +1054,14 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.tests', action.payload.tests);
       }
     },
+    //    updateCollectionProtobufFiles: (state, action) => {
+    //      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+    //
+    // 	console.warn("updateCollectionProtobufFiles", action.payload.protoFilePaths);
+    //      if (collection) {
+    //        set(collection, 'root.protoFilePaths', action.payload.protoFilePaths);
+    //      }
+    //    },
     updateCollectionDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1433,6 +1466,7 @@ export const {
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,
+  updateResponseDataParsing,
   updateResponseScript,
   updateRequestTests,
   updateRequestMethod,
@@ -1450,6 +1484,7 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
+  updateCollectionProtobufFiles,
   updateCollectionDocs,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,

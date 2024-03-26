@@ -75,15 +75,22 @@ const multipartFormSchema = Yup.object({
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'proto', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
     .required('mode is required'),
   json: Yup.string().nullable(),
+  proto: Yup.string().nullable(),
   text: Yup.string().nullable(),
   xml: Yup.string().nullable(),
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const dataParsingSchema = Yup.object({
+  proto: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();
@@ -195,6 +202,7 @@ const requestSchema = Yup.object({
   params: Yup.array().of(keyValueSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
+  dataParsing: dataParsingSchema,
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()

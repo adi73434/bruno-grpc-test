@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fse = require('fs-extra');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
@@ -179,11 +180,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
+    console.warn('--- handling save-request');
     try {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
-
       const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -555,6 +556,52 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       fs.renameSync(folderPath, newFolderPath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:show-proto-files-collection', async (event, collectionPath) => {
+    try {
+      const baseProtoPath = collectionPath + '/proto';
+      if (!fs.existsSync(baseProtoPath)) {
+        return ['naze?'];
+      }
+      const protoFiles = fs
+        .readdirSync(baseProtoPath, { withFileTypes: true })
+        .filter((item) => !item.isDirectory())
+        .map((item) => item.name);
+      return protoFiles;
+    } catch {
+      return Promise.reject(new Error('Failed to read Protobuf files'));
+    }
+  });
+
+  ipcMain.handle('renderer:remove-single-proto-file-collection', async (event, collectionPath, protoFile) => {
+    try {
+      const baseProtoPath = collectionPath + '/proto';
+      if (!fs.existsSync(baseProtoPath) || protoFile == '') {
+        return;
+      }
+
+      fs.unlinkSync(baseProtoPath + '/' + protoFile);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:copy-add-proto-files-collection', async (event, collectionPath, protoFiles) => {
+    try {
+      const baseProtoPath = collectionPath + '/proto';
+      if (!fs.existsSync(baseProtoPath)) {
+        fs.mkdirSync(baseProtoPath);
+      }
+
+      for (let i = 0; i !== protoFiles.length; i++) {
+        const protoFile = protoFiles[i];
+        const destPath = baseProtoPath + '/' + protoFile.name;
+        fs.copyFileSync(protoFile.path, destPath);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

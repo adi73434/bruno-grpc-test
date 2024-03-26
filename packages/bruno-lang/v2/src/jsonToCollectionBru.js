@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToCollectionBru = (json) => {
-  const { meta, query, headers, auth, script, tests, vars, docs } = json;
+  const { meta, query, headers, auth, script, tests, vars, protoFilePaths, docs } = json;
 
   let bru = '';
 
@@ -229,6 +229,14 @@ ${indentString(script.res)}
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}
+}
+
+`;
+  }
+
+  if (protoFilePaths && protoFilePaths.length) {
+    bru += `protoFilePaths {
+${indentString(protoFilePaths)}
 }
 
 `;

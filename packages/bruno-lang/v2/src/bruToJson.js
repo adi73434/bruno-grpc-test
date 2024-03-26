@@ -22,9 +22,9 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | dataParsing | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  bodies = bodyjson | bodyproto | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
   nl = "\\r"? "\\n"
@@ -84,6 +84,7 @@ const grammar = ohm.grammar(`Bru {
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
+  bodyproto = "body:proto" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
@@ -92,6 +93,9 @@ const grammar = ohm.grammar(`Bru {
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
+
+  dataParsing = "dataParsing" st* "{" nl* textblock tagend
+  dataParsingproto = "dataParsing:proto" st* "{" nl* textblock tagend
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -458,6 +462,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  bodyproto(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        proto: outdentString(textblock.sourceString)
+      }
+    };
+  },
   bodytext(_1, _2, _3, _4, textblock, _5) {
     return {
       body: {
@@ -494,6 +505,23 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         graphql: {
           variables: outdentString(textblock.sourceString)
         }
+      }
+    };
+  },
+  dataParsing(_1, _2, _3, _4, textblock, _5) {
+    return {
+      http: {
+        dataParsingMode: 'proto'
+      },
+      dataParsing: {
+        proto: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  dataParsingproto(_1, _2, _3, _4, textblock, _5) {
+    return {
+      dataParsing: {
+        proto: outdentString(textblock.sourceString)
       }
     };
   },

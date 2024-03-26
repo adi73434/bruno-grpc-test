@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
+  BruFile = (meta | query | headers | auth | auths | vars | script | tests | protoFilePaths | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
 
   nl = "\\r"? "\\n"
@@ -48,6 +48,7 @@ const grammar = ohm.grammar(`Bru {
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
+  protoFilePaths = "protoFilePaths" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
@@ -342,6 +343,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tests(_1, _2, _3, _4, textblock, _5) {
     return {
       tests: outdentString(textblock.sourceString)
+    };
+  },
+  protoFilePaths(_1, _2, _3, _4, textblock, _5) {
+    return {
+      protoFilePaths: outdentString(textblock.sourceString)
     };
   },
   docs(_1, _2, _3, _4, textblock, _5) {

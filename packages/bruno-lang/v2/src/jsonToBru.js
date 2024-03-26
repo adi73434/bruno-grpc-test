@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, query, headers, auth, body, dataParsing, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -167,9 +167,25 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
     }
   }
 
+  if (dataParsing && dataParsing.proto && dataParsing.proto.length) {
+    bru += `dataParsing:proto {
+${indentString(dataParsing.proto)}
+}
+
+`;
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}
+}
+
+`;
+  }
+
+  if (body && body.proto && body.proto.length) {
+    bru += `body:proto {
+${indentString(body.proto)}
 }
 
 `;

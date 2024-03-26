@@ -16,6 +16,7 @@ import Docs from './Docs';
 import Presets from './Presets';
 import Info from './Info';
 import StyledWrapper from './StyledWrapper';
+import ProtoFiles from './ProtoFiles/index';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -101,6 +102,9 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
+      case 'protoFiles': {
+        return <ProtoFiles collection={collection} />;
+      }
       case 'docs': {
         return <Docs collection={collection} />;
       }
@@ -139,6 +143,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
+        </div>
+        <div className={getTabClassname('protoFiles')} role="tab" onClick={() => setTab('protoFiles')}>
+          Proto Files
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
