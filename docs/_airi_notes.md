@@ -4,7 +4,7 @@
 
 `.proto` files will be stored in the main connection, allowing for re-use of definitions
 
-- [ ] Add protobufjs library
+- [x] Add protobufjs library
 - [x] Create "Definitions" component on the main Collection settings
 - [x] Button to import `.proto` files
 - [x] Store imported files in subfolder of the collection on disk
@@ -17,9 +17,10 @@
 Enable encoding of protobuf messages. The user input will be JSON.
 
 - [x] Make user input JSON
-- [ ] Look through proto files for `ProtoPacakge.ProtoMessage`.
+- [ ] Look through proto files for `ProtoPacakge.ProtoMessage`, omitting need for user specifying proto file
 - - When selecting the package/message, the file it comes from is abstracted away from the user.
-- [ ] Encode user's JSON to proto
+- [x] Encode user's JSON to proto
+- [x] Send protobuf buffer (as `application/protobuf` or `application/x-protobuf`)
 
 Proto interface type will be selected by typing its name in the JSON, such as:
 
@@ -32,11 +33,22 @@ Proto interface type will be selected by typing its name in the JSON, such as:
 }
 ```
 
+or
+
+```json
+{
+  "proto_file.proto::ProtoPackage.ProtoMessage": {
+    "field1": "val",
+    "field2": "val"
+  }
+}
+```
+
 ### Response body
 
-- [ ] Add request body type: proto (`application/proto`)
-- [ ] Figure out where/how to design a proto message selector to decode response
-- - Different types of response can come per request, e.g. on error or whatever.
+- [ ] Add request body type: proto (`application/protobuf` / `application/x-protobuf`)
+- [ ] Decode protobuf response based on HTTP status, as different responses could use different protobuf definitions
+- [ ] UI based decoder selection (?)
 
 It _might_ make sense to define the possible response message types in the _reqest_ body, depending on if the request body can easily be accessed in the response pane.
 
@@ -46,17 +58,17 @@ It _might_ make sense to define the possible response message types in the _reqe
 E.g.,
 
 ```json
+// Response "Data Parsing" tab
+// The first proto file as declared by the user (not based on digit),
+// is the default for all other HTTP statuses.
+// Here, ReceivedGood is the default, but if BadInput is moved up that would be the default
 {
-  "send.ProtoPackage.ProtoMessage": {
-    "field1": "val",
-    "field2": "val"
-  },
-  "receive": {
-    "200": "Package.ReceivedGood",
-    "400": "Package.BadInput",
-    "403": "Package.ForbiddenDetails"
+    "200": "proto_file::Package.ReceivedGood",
+    "400": "proto_file::Package.BadInput",
+    "403": "proto_file::Package.ForbiddenDetails"
   }
 }
+
 ```
 
 Saving requests
