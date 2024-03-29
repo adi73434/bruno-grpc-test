@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
+const { allowedProtobufContentTypes } = require('.');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -13,7 +14,6 @@ const getContentType = (headers = {}) => {
 };
 
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
-  console.error('interpolateVars');
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -71,8 +71,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = _interpolate(request.data);
       }
     }
-  } else if (contentType === 'application/protobuf') {
+  } else if (allowedProtobufContentTypes.includes(contentType)) {
     // Don't do anything; we want to send the Buffer/Uint8Array as-is
+    // Checking against x-protobuf and protobuf as there's currently no standard
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {

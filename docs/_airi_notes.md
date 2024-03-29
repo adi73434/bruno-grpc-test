@@ -47,7 +47,26 @@ or
 
 ### Response body
 
-- [ ] Add request body type: proto (`application/protobuf` / `application/x-protobuf`)
+There's currently no official IANA spec for protobuf Content-Type: https://www.iana.org/assignments/media-types/media-types.xhtml
+
+- People can potentially get creative with this, e.g., with `application/foo+protobuf`, wherein foo could represent the file.
+
+Inferring response type options:
+
+- Rely only on request Content-Type: `application/vnd.google.protobuf`, `application/x-protobuf`, `application/protobuf`
+- - Error or fallback to text if no `dataParsing` provided
+- - Error or fallback to text if server lied to us
+- Rely only on `dataParsing` being set
+- - Error or fallback if user lied to us
+- (NOT DOING) Rely first on request Content-Type _and_ a `proto=com.example.SomeMessage` header, then `dataParsing`
+- - Error or fallback to dataParsing if server lied to us
+- - - Error or fallback to text if user lied to us
+- (NOT DOING) Rely first on `dataParsing` then `proto=com.example.SomeMessage` header
+- - Error or fallback to `proto=` header if user lied to us
+- - - Error or fallback to text if server lied to us
+
+My preference is for the user to have a diktat on how to parse the data, regardless of what the server says.
+
 - [ ] Decode protobuf response based on HTTP status, as different responses could use different protobuf definitions
 - [ ] UI based decoder selection (?)
 
@@ -58,9 +77,11 @@ E.g.,
 
 ```json
 // Response "Data Parsing" tab
-// The first proto file as declared by the user (not based on digit),
-// is the default for all other HTTP statuses.
-// Here, ReceivedGood is the default, but if BadInput is moved up that would be the default
+//
+// - Could use the first defined protobuf (in order of definition, not numerical)
+// as the default for all non-defined status codes (here it would be ReceivedGood)
+// - Could require "*" field key, which acts as the fallback/default for non-defined
+// status codes
 {
     "200": "proto_file::Package.ReceivedGood",
     "400": "proto_file::Package.BadInput",

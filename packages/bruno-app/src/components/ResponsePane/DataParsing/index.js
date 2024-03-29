@@ -10,10 +10,8 @@ const DataParsing = ({ bodyMode, item, collection }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dataParsing = item.draft ? get(item, 'draft.request.dataParsing') : get(item, 'request.dataParsing');
 
-  // console.log(item);
-
   let codeMirrorMode = {
-    proto: 'application/protobuf'
+    proto: 'application/x-protobuf'
   };
 
   let dataParseContent = {

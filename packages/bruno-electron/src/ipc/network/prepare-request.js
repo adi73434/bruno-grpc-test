@@ -155,46 +155,46 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const encodeProtobuf = (request, collectionPath) => {
   const jsonWithProtoMetadata = JSON.parse(request.body.proto);
 
-  // jsonWithProtoMetadata[0] = file.proto::ProtobufPackage.ProtobufMessage
+  // "file.package.message"
   const firstFieldKey = Object.keys(jsonWithProtoMetadata)[0];
 
-  const metaFields = firstFieldKey.split('::');
-  if (metaFields.length !== 2) {
-    // TODO: Airi Pretty error
-    throw 'Incorrect protobuf metadata format (expected: "file.proto::Package.Message")';
+  // [file, package, message]
+  const protoSchemaParts = firstFieldKey.split('.');
+
+  if (
+    protoSchemaParts.length !== 3 ||
+    protoSchemaParts[0].length < 1 ||
+    protoSchemaParts[1].length < 1 ||
+    protoSchemaParts[2].length < 1
+  ) {
+    throw `[Encoding] Invalid format of protobuf identifier. Expected: "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}`;
   }
 
   let protoRoot;
-  let protobufEncoder;
+  let protoEncoder;
 
   try {
     // Can be async
-    protoRoot = protobuf.loadSync(collectionPath + '/proto/' + metaFields[0]);
+    protoRoot = protobuf.loadSync(`${collectionPath}/proto/${protoSchemaParts[0]}.proto`);
   } catch (e) {
-    // TODO: Airi Pretty error
-    throw "Provided protobuf file doesn't exist";
+    throw `[Encoding] Desired protobuf file doesn't exist: ${protoSchemaParts[0]}`;
   }
 
   try {
-    protobufEncoder = protoRoot.lookupType(metaFields[1]);
+    protoEncoder = protoRoot.lookupType(`${protoSchemaParts[1]}.${protoSchemaParts[2]}`);
   } catch (e) {
-    // TODO: Airi Pretty error
-    throw "Provided protobuf package/message type doesn't exist";
+    throw `[Encoding] Desired protobuf package.message type doesn't exist: ${protoSchemaParts[1]}.${protoSchemaParts[2]}`;
   }
 
   // Everything inside of the "wrapper" (the protobuf descriptor)
   const protoJsonAsObject = jsonWithProtoMetadata[firstFieldKey];
-  console.error(metaFields[0]);
-  console.error(metaFields[1]);
-  console.error(protoJsonAsObject);
 
-  const errVerify = protobufEncoder.verify(protoJsonAsObject);
+  const errVerify = protoEncoder.verify(protoJsonAsObject);
   if (errVerify) {
-    // TODO: Airi Pretty error
-    throw 'Incorrect protobuf format (fields) -- ' + errVerify;
+    throw `[Encoding] Incorrect protobuf data format (fields mismatch). Error: ${errVerify}`;
   }
 
-  return protobufEncoder.encode(protoJsonAsObject).finish();
+  return protoEncoder.encode(protoJsonAsObject).finish();
 };
 
 const prepareRequest = (request, collectionRoot, collectionPath) => {
@@ -242,7 +242,8 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     }
   } else if (request.body.mode === 'proto') {
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/protobuf';
+      // Not official, see: https://www.iana.org/assignments/media-types/media-types.xhtml
+      axiosRequest.headers['content-type'] = 'application/x-protobuf';
     }
     axiosRequest.data = encodeProtobuf(request, collectionPath);
   } else if (request.body.mode === 'text') {

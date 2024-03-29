@@ -5,12 +5,13 @@ const https = require('https');
 const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
+const protobuf = require('protobufjs');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, split } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -79,6 +80,15 @@ const getEnvVars = (environment = {}) => {
     __name__: environment.name
   };
 };
+
+// For these Content-Types, the response will be assumed to be protobuf.
+// - https://datatracker.ietf.org/doc/html/draft-rfernando-protocol-buffers-00
+// - https://groups.google.com/g/protobuf/c/VAoJ-HtgpAI
+const allowedProtobufContentTypes = [
+  'application/vnd.google.protobuf',
+  'application/x-protobuf',
+  'application/protobuf'
+];
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
@@ -255,22 +265,110 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const parseDataFromResponse = (response, originalRequest = undefined) => {
+const tryDecodeWithProtobuf = (response, collectionPath, originalRequest, dataBuffer) => {
+  // Protobuf schema priority:
+  // - dataParsing.proto["200"] > dataParsing.proto["*"] if the status code was 200
+  // - dataParsing.proto["*"]   > headers['proto']
+  //
+  // UX reasoning:
+  // - A wrongly formatted dataParsing file.package.message entry will take precedence
+  // over a valid headers['proto'] so the user knows their dataParsing is invalid.
+  let protoSchemaString;
+  let userDefinedProto = undefined;
+
+  // Can be undefined, hence ?
+  if (response.headers['proto']?.length > 0) {
+    protoSchemaString = response.headers['proto'];
+  }
+
+  // .proto might be undefined/null, and .proto[foo] might be undefined, hence ? both
+  if (originalRequest.dataParsing.proto?.['*']?.length > 0) {
+    userDefinedProto = 'wildcard (*)';
+    protoSchemaString = originalRequest.dataParsing.proto['*'];
+  }
+  if (originalRequest.dataParsing.proto?.[response.status]?.length > 0) {
+    userDefinedProto = `status ${response.status}`;
+    protoSchemaString = originalRequest.dataParsing.proto[response.status];
+  }
+
+  // [file, package, message]
+  const protoSchemaParts = protoSchemaString?.split('.');
+
+  if (!protoSchemaParts) {
+    throw `[Decoding] No protobuf identifier provided from server or by user
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
+
+  if (
+    protoSchemaParts.length !== 3 ||
+    protoSchemaParts[0].length < 1 ||
+    protoSchemaParts[1].length < 1 ||
+    protoSchemaParts[2].length < 1
+  ) {
+    if (userDefinedProto) {
+      throw `[Decoding] Invalid format of user-defined protobuf identifier.
+				Expected "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+    }
+    throw `[Decoding] Invalid format of server-provided 'proto' header: ${protoSchemaParts}
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
+
+  let protoRoot;
+  let protoDecoder;
+
+  try {
+    // Can be async
+    protoRoot = protobuf.loadSync(`${collectionPath}/proto/${protoSchemaParts[0]}.proto`);
+  } catch (e) {
+    throw `[Decoding] Desired protobuf file doesn't exist: ${protoSchemaParts[0]}.proto
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
+
+  try {
+    protoDecoder = protoRoot.lookupType(`${protoSchemaParts[1]}.${protoSchemaParts[2]}`);
+  } catch (e) {
+    throw `[Decoding] Desired protobuf package.message type doesn't exist: ${protoSchemaParts[1]}.${protoSchemaParts[2]}
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
+
+  try {
+    const decodedProto = protoDecoder.decode(dataBuffer);
+    return { data: decodedProto.toJSON(), dataBuffer };
+  } catch (e) {
+    // Re-throwing here to provide some context to the user,
+    // because an error like "RangeError: index out of range: 75 + 8 > 80"
+    // isn't very friendly
+    throw `[Decoding] Protobuf decoding error (maybe protobuf identifier mismatch?): ${e}
+			.......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
+};
+
+const parseDataFromResponse = (response, collectionPath, originalRequest) => {
   const dataBuffer = Buffer.from(response.data);
+
+  // Gets the "Media-Type" in the "Content-Type" header, without parameters like "charset".
+  // Content-Type could be undefined, hence ?
+  // https://www.rfc-editor.org/rfc/rfc2046.html#section-1
+  const mediaTypeNoParameters = response.headers['content-type']?.split()[0];
+
+  // Use protobuf decoder if a header was given or if dataParsing.proto is provided
+  // If something goes wrong, we don't fall back to text/JSON as the user should know
+  if (allowedProtobufContentTypes.includes(mediaTypeNoParameters) || originalRequest.dataParsing.proto) {
+    const nyaa = tryDecodeWithProtobuf(response, collectionPath, originalRequest, dataBuffer);
+    return nyaa;
+  }
+
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+
   // Overwrite the original data for backwards compatability
   let data = dataBuffer.toString(charset || 'utf-8');
-  console.error(originalRequest);
-  console.error(response);
 
-  if (originalRequest === undefined || originalRequest?.proto === null) {
-    // Try to parse response to JSON, this can quietly fail
-    try {
-      data = JSON.parse(response.data);
-    } catch {}
-  } else {
-  }
+  // Try to parse response to JSON, this can quietly fail
+  try {
+    data = JSON.parse(response.data);
+  } catch {}
 
   return { data, dataBuffer };
 };
@@ -521,7 +619,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response, _request);
+      const { data, dataBuffer } = parseDataFromResponse(response, collectionPath, _request);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -678,7 +776,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      const { data } = parseDataFromResponse(response, _request);
+      const { data } = parseDataFromResponse(response, collectionPath, _request);
       response.data = data;
 
       await runPostResponse(
@@ -933,7 +1031,7 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(axiosRequest);
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response, _request);
+              const { data, dataBuffer } = parseDataFromResponse(response, collectionPath, _request);
               response.data = data;
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -951,7 +1049,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             } catch (error) {
               if (error?.response && !axios.isCancel(error)) {
-                const { data, dataBuffer } = parseDataFromResponse(error.response, _request);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, collectionPath, _request);
                 error.response.data = data;
 
                 timeEnd = Date.now();
@@ -1143,3 +1241,4 @@ const registerNetworkIpc = (mainWindow) => {
 
 module.exports = registerNetworkIpc;
 module.exports.configureRequest = configureRequest;
+module.exports.allowedProtobufContentTypes = allowedProtobufContentTypes;
