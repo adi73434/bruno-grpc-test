@@ -1,4 +1,4 @@
-## Adding GRPC/proto support
+## Adding proto support
 
 ### Protobuf files
 
@@ -8,6 +8,7 @@
 - [x] Create "Definitions" component on the main Collection settings
 - [x] Button to import `.proto` files
 - [x] Store imported files in subfolder of the collection on disk
+- - Since subfolders are rendered in bruno, it might be better to keep them in the root?
 - [x] Render list of imported protobuf definitions
 - [x] Button to delete proto files
 - [ ] ~~Compile~~ (will load dynamically)
@@ -50,10 +51,8 @@ or
 - [ ] Decode protobuf response based on HTTP status, as different responses could use different protobuf definitions
 - [ ] UI based decoder selection (?)
 
-It _might_ make sense to define the possible response message types in the _reqest_ body, depending on if the request body can easily be accessed in the response pane.
-
+- Could add a tab (_probably_ in the response pane) that maps "Proto Responses" with a JSON format as below
 - This would allow easy mapping of status codes to protobuf types.
-- Alternatively, could add a tab (in reuest or _probably_ response pane) that maps "Proto Responses" with the same JSON format as below
 
 E.g.,
 
@@ -68,9 +67,8 @@ E.g.,
     "403": "proto_file::Package.ForbiddenDetails"
   }
 }
-
 ```
 
-Saving requests
+### Saving requests
 
 - [x] This will probably need an additional entry for "proto", which will be the same as JSON input except it will also have a protobuf encoder file name

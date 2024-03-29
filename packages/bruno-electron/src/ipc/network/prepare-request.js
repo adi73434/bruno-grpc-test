@@ -142,11 +142,22 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
+// Encodes a Buffer|Uint8Array using the protobuf schema,
+// which is located in the collectionPath
+//
+// The user input looks like so, where field1 and field2 are what is sent:
+// {
+//   "file.proto::ProtobufPackage.ProtobufMessage": {
+//     "field1": "val1",
+//     "field2": "val2"
+//   }
+// }
 const encodeProtobuf = (request, collectionPath) => {
   const jsonWithProtoMetadata = JSON.parse(request.body.proto);
 
   // jsonWithProtoMetadata[0] = file.proto::ProtobufPackage.ProtobufMessage
   const firstFieldKey = Object.keys(jsonWithProtoMetadata)[0];
+
   const metaFields = firstFieldKey.split('::');
   if (metaFields.length !== 2) {
     // TODO: Airi Pretty error
@@ -157,7 +168,7 @@ const encodeProtobuf = (request, collectionPath) => {
   let protobufEncoder;
 
   try {
-    // NOTE: Can be async
+    // Can be async
     protoRoot = protobuf.loadSync(collectionPath + '/proto/' + metaFields[0]);
   } catch (e) {
     // TODO: Airi Pretty error
@@ -173,16 +184,17 @@ const encodeProtobuf = (request, collectionPath) => {
 
   // Everything inside of the "wrapper" (the protobuf descriptor)
   const protoJsonAsObject = jsonWithProtoMetadata[firstFieldKey];
+  console.error(metaFields[0]);
+  console.error(metaFields[1]);
+  console.error(protoJsonAsObject);
 
   const errVerify = protobufEncoder.verify(protoJsonAsObject);
   if (errVerify) {
     // TODO: Airi Pretty error
-    throw 'Incorrect protobuf format (fields)';
+    throw 'Incorrect protobuf format (fields) -- ' + errVerify;
   }
 
-  const buffer = protobufEncoder.encode(protoJsonAsObject).finish();
-
-  return buffer;
+  return protobufEncoder.encode(protoJsonAsObject).finish();
 };
 
 const prepareRequest = (request, collectionRoot, collectionPath) => {
@@ -230,14 +242,9 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     }
   } else if (request.body.mode === 'proto') {
     if (!contentTypeDefined) {
-      // alternatively, "application/x-protobuf"
       axiosRequest.headers['content-type'] = 'application/protobuf';
     }
-
-    const encodedBuffer = encodeProtobuf(request, collectionPath);
-
-    // TODO: Airi protobuf encode based on the given ProtoPackage.ProtoMessage
-    axiosRequest.data = encodedBuffer;
+    axiosRequest.data = encodeProtobuf(request, collectionPath);
   } else if (request.body.mode === 'text') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/plain';

@@ -13,7 +13,7 @@ const DataParsing = ({ bodyMode, item, collection }) => {
   // console.log(item);
 
   let codeMirrorMode = {
-    proto: 'application/proto'
+    proto: 'application/protobuf'
   };
 
   let dataParseContent = {

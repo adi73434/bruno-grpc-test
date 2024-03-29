@@ -255,16 +255,22 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const parseDataFromResponse = (response) => {
+const parseDataFromResponse = (response, originalRequest = undefined) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
   // Overwrite the original data for backwards compatability
   let data = dataBuffer.toString(charset || 'utf-8');
-  // Try to parse response to JSON, this can quietly fail
-  try {
-    data = JSON.parse(response.data);
-  } catch {}
+  console.error(originalRequest);
+  console.error(response);
+
+  if (originalRequest === undefined || originalRequest?.proto === null) {
+    // Try to parse response to JSON, this can quietly fail
+    try {
+      data = JSON.parse(response.data);
+    } catch {}
+  } else {
+  }
 
   return { data, dataBuffer };
 };
@@ -421,7 +427,6 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
-    console.error('send-http-request');
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -516,7 +521,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response);
+      const { data, dataBuffer } = parseDataFromResponse(response, _request);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -635,14 +640,14 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const axiosRequest = prepareCollectionRequest(_request, collectionRoot, collectionPath);
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
 
       await runPreRequest(
-        request,
+        axiosRequest,
         requestUid,
         envVars,
         collectionPath,
@@ -653,10 +658,10 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      interpolateVars(axiosRequest, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
-        request,
+        axiosRequest,
         envVars,
         collection.collectionVariables,
         processEnvVars,
@@ -664,7 +669,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       try {
-        response = await axiosInstance(request);
+        response = await axiosInstance(axiosRequest);
       } catch (error) {
         if (error?.response) {
           response = error.response;
@@ -673,11 +678,11 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      const { data } = parseDataFromResponse(response);
+      const { data } = parseDataFromResponse(response, _request);
       response.data = data;
 
       await runPostResponse(
-        request,
+        axiosRequest,
         response,
         requestUid,
         envVars,
@@ -876,13 +881,13 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot, collectionPath);
+          const axiosRequest = prepareRequest(_request, collectionRoot, collectionPath);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             const preRequestScriptResult = await runPreRequest(
-              request,
+              axiosRequest,
               requestUid,
               envVars,
               collectionPath,
@@ -903,18 +908,18 @@ const registerNetworkIpc = (mainWindow) => {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'request-sent',
               requestSent: {
-                url: request.url,
-                method: request.method,
-                headers: request.headers,
-                data: safeParseJSON(safeStringifyJSON(request.data))
+                url: axiosRequest.url,
+                method: axiosRequest.method,
+                headers: axiosRequest.headers,
+                data: safeParseJSON(safeStringifyJSON(axiosRequest.data))
               },
               ...eventData
             });
 
-            request.signal = abortController.signal;
+            axiosRequest.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
-              request,
+              axiosRequest,
               envVars,
               collectionVariables,
               processEnvVars,
@@ -925,10 +930,10 @@ const registerNetworkIpc = (mainWindow) => {
             let response;
             try {
               /** @type {import('axios').AxiosResponse} */
-              response = await axiosInstance(request);
+              response = await axiosInstance(axiosRequest);
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response);
+              const { data, dataBuffer } = parseDataFromResponse(response, _request);
               response.data = data;
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -946,7 +951,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             } catch (error) {
               if (error?.response && !axios.isCancel(error)) {
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                const { data, dataBuffer } = parseDataFromResponse(error.response, _request);
                 error.response.data = data;
 
                 timeEnd = Date.now();
@@ -974,7 +979,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             const postRequestScriptResult = await runPostResponse(
-              request,
+              axiosRequest,
               response,
               requestUid,
               envVars,
@@ -996,7 +1001,7 @@ const registerNetworkIpc = (mainWindow) => {
               const assertRuntime = new AssertRuntime();
               const results = assertRuntime.runAssertions(
                 assertions,
-                request,
+                axiosRequest,
                 response,
                 envVars,
                 collectionVariables,
@@ -1020,7 +1025,7 @@ const registerNetworkIpc = (mainWindow) => {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
                 decomment(testFile),
-                request,
+                axiosRequest,
                 response,
                 envVars,
                 collectionVariables,

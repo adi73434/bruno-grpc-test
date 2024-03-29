@@ -169,7 +169,6 @@ export const sendCollectionOauth2Request = (collectionUid) => (dispatch, getStat
 };
 
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
-  console.error('sendRequest');
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -182,11 +181,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const collectionCopy = cloneDeep(collection);
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
-    console.error('before sendNetworkRequest');
 
     sendNetworkRequest(itemCopy, collection, environment, collectionCopy.collectionVariables)
       .then((response) => {
-        console.error('sendNetworkRequest.then()');
         return dispatch(
           responseReceived({
             itemUid: item.uid,

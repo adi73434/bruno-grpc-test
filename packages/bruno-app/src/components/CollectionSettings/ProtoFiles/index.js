@@ -12,7 +12,6 @@ const ProtoFiles = ({ collection }) => {
 
   const listExistingProtoFiles = async () => {
     const files = await ipcRenderer.invoke('renderer:show-proto-files-collection', collection.pathname);
-    console.log('listExistingProtoFiles', files);
     setExistingProtos(files);
   };
 
@@ -29,7 +28,6 @@ const ProtoFiles = ({ collection }) => {
   };
 
   const copyAppProtoFiles = (filePaths) => {
-    console.log('copyAppProtoFiles', filePaths);
     ipcRenderer
       .invoke('renderer:copy-add-proto-files-collection', collection.pathname, filePaths)
       .then(() => toast.success('Proto Files added successfully'))
