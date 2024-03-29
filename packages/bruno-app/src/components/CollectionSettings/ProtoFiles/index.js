@@ -33,8 +33,6 @@ const ProtoFiles = ({ collection }) => {
       .then(() => toast.success('Proto Files added successfully'))
       .catch((err) => {
         toast.error('Failed to add Proto Files!');
-        // console.error(err);
-        // reject(err);
       });
 
     listExistingProtoFiles();

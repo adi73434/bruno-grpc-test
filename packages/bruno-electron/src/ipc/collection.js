@@ -180,7 +180,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
-    console.warn('--- handling save-request');
     try {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);

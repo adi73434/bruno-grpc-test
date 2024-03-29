@@ -111,7 +111,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
-        {/* TODO: Support other data types that require user-defined types */}
         <div className={getTabClassname('dataParsing')} role="tab" onClick={() => selectTab('dataParsing')}>
           Data Parsing
         </div>

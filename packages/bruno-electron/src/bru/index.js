@@ -125,8 +125,6 @@ const bruToJson = (bru) => {
       }
     };
 
-    // TODO: Airi: Might have to mimick this method that sets
-    // the body, and do something like dataParsingmode: http.dataParsing (or whatever)
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
 

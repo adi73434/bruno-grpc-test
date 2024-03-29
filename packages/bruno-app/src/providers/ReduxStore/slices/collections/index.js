@@ -1054,14 +1054,6 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.tests', action.payload.tests);
       }
     },
-    //    updateCollectionProtobufFiles: (state, action) => {
-    //      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-    //
-    // 	console.warn("updateCollectionProtobufFiles", action.payload.protoFilePaths);
-    //      if (collection) {
-    //        set(collection, 'root.protoFilePaths', action.payload.protoFilePaths);
-    //      }
-    //    },
     updateCollectionDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1484,7 +1476,6 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
-  updateCollectionProtobufFiles,
   updateCollectionDocs,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
