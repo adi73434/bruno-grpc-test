@@ -155,7 +155,7 @@ const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer, u
 
   if (!protoSchemaParts) {
     throw `[Decoding] No protobuf identifier provided from server or by user
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
   }
 
   if (
@@ -166,11 +166,11 @@ const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer, u
   ) {
     if (userDefinedProto) {
       throw `[Decoding] Invalid format of user-defined protobuf identifier.
-				Expected "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+        Expected "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}
+        .......... [[Raw data buffer]]: ${dataBuffer}`;
     }
     throw `[Decoding] Invalid format of server-provided 'proto' header: ${protoSchemaParts}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
   }
 
   let protoRoot;
@@ -181,14 +181,14 @@ const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer, u
     protoRoot = protobuf.loadSync(`${collectionPath}/proto/${protoSchemaParts[0]}.proto`);
   } catch (e) {
     throw `[Decoding] Desired protobuf file doesn't exist: ${protoSchemaParts[0]}.proto
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
   }
 
   try {
     protoDecoder = protoRoot.lookupType(`${protoSchemaParts[1]}.${protoSchemaParts[2]}`);
   } catch (e) {
     throw `[Decoding] Desired protobuf package.message type doesn't exist: ${protoSchemaParts[1]}.${protoSchemaParts[2]}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
   }
 
   try {
@@ -199,7 +199,7 @@ const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer, u
     // because an error like "RangeError: index out of range: 75 + 8 > 80"
     // isn't very friendly
     throw `[Decoding] Protobuf decoding error (maybe protobuf identifier mismatch?): ${e}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
   }
 };
 
