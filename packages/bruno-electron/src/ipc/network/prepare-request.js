@@ -4,7 +4,7 @@ var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
-const protobuf = require('protobufjs');
+const { contentTypeDefaultProtobuf, encodeProtobuf } = require('./parsing-protobuf');
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -141,62 +141,6 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
   return axiosRequest;
 };
-
-// Encodes a Buffer|Uint8Array using the protobuf schema,
-// which is located in the collectionPath
-//
-// The user input looks like so, where field1 and field2 are what is sent:
-// {
-//   "file.proto::ProtobufPackage.ProtobufMessage": {
-//     "field1": "val1",
-//     "field2": "val2"
-//   }
-// }
-const encodeProtobuf = (request, collectionPath) => {
-  const jsonWithProtoMetadata = JSON.parse(request.body.proto);
-
-  // "file.package.message"
-  const firstFieldKey = Object.keys(jsonWithProtoMetadata)[0];
-
-  // [file, package, message]
-  const protoSchemaParts = firstFieldKey.split('.');
-
-  if (
-    protoSchemaParts.length !== 3 ||
-    protoSchemaParts[0].length < 1 ||
-    protoSchemaParts[1].length < 1 ||
-    protoSchemaParts[2].length < 1
-  ) {
-    throw `[Encoding] Invalid format of protobuf identifier. Expected: "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}`;
-  }
-
-  let protoRoot;
-  let protoEncoder;
-
-  try {
-    // Can be async
-    protoRoot = protobuf.loadSync(`${collectionPath}/proto/${protoSchemaParts[0]}.proto`);
-  } catch (e) {
-    throw `[Encoding] Desired protobuf file doesn't exist: ${protoSchemaParts[0]}`;
-  }
-
-  try {
-    protoEncoder = protoRoot.lookupType(`${protoSchemaParts[1]}.${protoSchemaParts[2]}`);
-  } catch (e) {
-    throw `[Encoding] Desired protobuf package.message type doesn't exist: ${protoSchemaParts[1]}.${protoSchemaParts[2]}`;
-  }
-
-  // Everything inside of the "wrapper" (the protobuf descriptor)
-  const protoJsonAsObject = jsonWithProtoMetadata[firstFieldKey];
-
-  const errVerify = protoEncoder.verify(protoJsonAsObject);
-  if (errVerify) {
-    throw `[Encoding] Incorrect protobuf data format (fields mismatch). Error: ${errVerify}`;
-  }
-
-  return protoEncoder.encode(protoJsonAsObject).finish();
-};
-
 const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
@@ -242,8 +186,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     }
   } else if (request.body.mode === 'proto') {
     if (!contentTypeDefined) {
-      // Not official, see: https://www.iana.org/assignments/media-types/media-types.xhtml
-      axiosRequest.headers['content-type'] = 'application/x-protobuf';
+      axiosRequest.headers['content-type'] = contentTypeDefaultProtobuf;
     }
     axiosRequest.data = encodeProtobuf(request, collectionPath);
   } else if (request.body.mode === 'text') {

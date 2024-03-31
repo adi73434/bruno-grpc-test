@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { allowedProtobufContentTypes } = require('.');
+const { contentTypesProtobuf } = require('./parsing-protobuf');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -71,9 +71,6 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = _interpolate(request.data);
       }
     }
-  } else if (allowedProtobufContentTypes.includes(contentType)) {
-    // Don't do anything; we want to send the Buffer/Uint8Array as-is
-    // Checking against x-protobuf and protobuf as there's currently no standard
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
@@ -82,6 +79,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
+  } else if (contentTypesProtobuf.includes(contentType)) {
+    // Don't do anything; we want to send the Buffer/Uint8Array as-is
   } else {
     request.data = _interpolate(request.data);
   }

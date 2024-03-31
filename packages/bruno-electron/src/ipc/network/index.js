@@ -5,7 +5,6 @@ const https = require('https');
 const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
-const protobuf = require('protobufjs');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
@@ -38,6 +37,7 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
+const { decodeProtobuf, contentTypesProtobuf } = require('./parsing-protobuf');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -80,15 +80,6 @@ const getEnvVars = (environment = {}) => {
     __name__: environment.name
   };
 };
-
-// For these Content-Types, the response will be assumed to be protobuf.
-// - https://datatracker.ietf.org/doc/html/draft-rfernando-protocol-buffers-00
-// - https://groups.google.com/g/protobuf/c/VAoJ-HtgpAI
-const allowedProtobufContentTypes = [
-  'application/vnd.google.protobuf',
-  'application/x-protobuf',
-  'application/protobuf'
-];
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
@@ -265,98 +256,31 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const tryDecodeWithProtobuf = (response, collectionPath, originalRequest, dataBuffer) => {
-  // Protobuf schema priority:
-  // - dataParsing.proto["200"] > dataParsing.proto["*"] if the status code was 200
-  // - dataParsing.proto["*"]   > headers['proto']
-  //
-  // UX reasoning:
-  // - A wrongly formatted dataParsing file.package.message entry will take precedence
-  // over a valid headers['proto'] so the user knows their dataParsing is invalid.
-  let protoSchemaString;
-  let userDefinedProto = undefined;
-
-  // Can be undefined, hence ?
-  if (response.headers['proto']?.length > 0) {
-    protoSchemaString = response.headers['proto'];
-  }
-
-  // .proto might be undefined/null, and .proto[foo] might be undefined, hence ? both
-  if (originalRequest.dataParsing.proto?.['*']?.length > 0) {
-    userDefinedProto = 'wildcard (*)';
-    protoSchemaString = originalRequest.dataParsing.proto['*'];
-  }
-  if (originalRequest.dataParsing.proto?.[response.status]?.length > 0) {
-    userDefinedProto = `status ${response.status}`;
-    protoSchemaString = originalRequest.dataParsing.proto[response.status];
-  }
-
-  // [file, package, message]
-  const protoSchemaParts = protoSchemaString?.split('.');
-
-  if (!protoSchemaParts) {
-    throw `[Decoding] No protobuf identifier provided from server or by user
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-  }
-
-  if (
-    protoSchemaParts.length !== 3 ||
-    protoSchemaParts[0].length < 1 ||
-    protoSchemaParts[1].length < 1 ||
-    protoSchemaParts[2].length < 1
-  ) {
-    if (userDefinedProto) {
-      throw `[Decoding] Invalid format of user-defined protobuf identifier.
-				Expected "fileNameWithoutExtension.package.message", received: ${protoSchemaParts}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-    }
-    throw `[Decoding] Invalid format of server-provided 'proto' header: ${protoSchemaParts}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-  }
-
-  let protoRoot;
-  let protoDecoder;
-
-  try {
-    // Can be async
-    protoRoot = protobuf.loadSync(`${collectionPath}/proto/${protoSchemaParts[0]}.proto`);
-  } catch (e) {
-    throw `[Decoding] Desired protobuf file doesn't exist: ${protoSchemaParts[0]}.proto
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-  }
-
-  try {
-    protoDecoder = protoRoot.lookupType(`${protoSchemaParts[1]}.${protoSchemaParts[2]}`);
-  } catch (e) {
-    throw `[Decoding] Desired protobuf package.message type doesn't exist: ${protoSchemaParts[1]}.${protoSchemaParts[2]}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-  }
-
-  try {
-    const decodedProto = protoDecoder.decode(dataBuffer);
-    return { data: decodedProto.toJSON(), dataBuffer };
-  } catch (e) {
-    // Re-throwing here to provide some context to the user,
-    // because an error like "RangeError: index out of range: 75 + 8 > 80"
-    // isn't very friendly
-    throw `[Decoding] Protobuf decoding error (maybe protobuf identifier mismatch?): ${e}
-			.......... [[Raw data buffer]]: ${dataBuffer}`;
-  }
-};
-
 const parseDataFromResponse = (response, collectionPath, originalRequest) => {
   const dataBuffer = Buffer.from(response.data);
 
-  // Gets the "Media-Type" in the "Content-Type" header, without parameters like "charset".
+  // Gets the "Media Type" in the "Content-Type" header, without parameters like "charset".
   // Content-Type could be undefined, hence ?
   // https://www.rfc-editor.org/rfc/rfc2046.html#section-1
   const mediaTypeNoParameters = response.headers['content-type']?.split()[0];
 
-  // Use protobuf decoder if a header was given or if dataParsing.proto is provided
-  // If something goes wrong, we don't fall back to text/JSON as the user should know
-  if (allowedProtobufContentTypes.includes(mediaTypeNoParameters) || originalRequest.dataParsing.proto) {
-    const nyaa = tryDecodeWithProtobuf(response, collectionPath, originalRequest, dataBuffer);
-    return nyaa;
+  // Use protobuf decoder if a "Content-Type" protobuf header was given
+  // or if dataParsing.proto is provided.
+  //
+  // If something goes wrong, we don't fall back to text/JSON as the user should know.
+  //
+  // NOTE: If other formats are implemented, a user could hypothetically
+  // have `dataParsing.proto` and `dataParsing.capnproto` defined.
+  // - If we we want to maintain the user's ability to ignore the server's
+  // "Content-Type", the user will need to specify something like `dataParsing.mode`.
+  // - `dataParsing.mode` could be: "use-server", "proto", or "capnproto"
+  // - "use-server" will select the decoder based on "Content-Type".
+  // - "use-server" will *not* override the "protobuf schema priority" in `decodeProtobuf()`
+  if (contentTypesProtobuf.includes(mediaTypeNoParameters) || originalRequest.dataParsing.proto) {
+    return {
+      data: decodeProtobuf(response, collectionPath, originalRequest, dataBuffer),
+      dataBuffer: dataBuffer
+    };
   }
 
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
@@ -1239,6 +1163,7 @@ const registerNetworkIpc = (mainWindow) => {
   });
 };
 
-module.exports = registerNetworkIpc;
-module.exports.configureRequest = configureRequest;
-module.exports.allowedProtobufContentTypes = allowedProtobufContentTypes;
+module.exports = {
+  registerNetworkIpc,
+  configureRequest
+};
