@@ -13,6 +13,10 @@ const contentTypesProtobuf = ['application/vnd.google.protobuf', 'application/x-
 //
 // This is the Content-Type that will be used when sending.
 //
+// TODO: Not sure how to go about using this in `/packages/bruno-app`,
+// in places where "application/x-protobuf" is hard-coded.
+// Maybe this file should be in `/packages/bruno-common` ??
+//
 // See: https://www.iana.org/assignments/media-types/media-types.xhtml
 const contentTypeDefaultProtobuf = contentTypesProtobuf[1];
 
@@ -130,7 +134,7 @@ const encodeProtobuf = (request, collectionPath) => {
  * @throws If there's a decoding error. This comes from protobufjs `.decode()` but
  * it is re-thrown here to provide context as protobuf decoding errors can seem cryptic.
  */
-const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer, useServer) => {
+const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer) => {
   // UX reasoning:
   let protoSchemaString;
   let userDefinedProto = undefined;
