@@ -495,6 +495,18 @@ export const humanizeRequestBodyMode = (mode) => {
   return label;
 };
 
+export const humanizeResponseDataParsingMode = (mode) => {
+  let label = 'No parsing';
+  switch (mode) {
+    case 'proto': {
+      label = 'Proto';
+      break;
+    }
+  }
+
+  return label;
+};
+
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {

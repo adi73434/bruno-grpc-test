@@ -312,7 +312,10 @@ export const collectionsSlice = createSlice({
               mode: null,
               content: null
             },
-            dataParsing: {}
+            dataParsing: {
+              mode: null,
+              proto: null
+            }
           },
           draft: null
         };
@@ -741,7 +744,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    updateRequestDataParsing: (state, action) => {
+    updateResponseDataParsing: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
@@ -751,13 +754,49 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+
           // TODO: Support other data types that need user-definition
-          switch (item.draft.request.body.mode) {
+          switch (item.draft.request.dataParsing.mode) {
             case 'proto': {
-              item.draft.request.dataParsing.proto = action.payload.content;
+              item.draft.request.dataParsing.proto = action.payload.dataParsingByMode;
               break;
             }
           }
+        }
+      }
+    },
+    updateResponseDataParsingMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          console.log('setting request dataParsing.mode');
+          item.draft.request.dataParsing.mode = action.payload.mode;
         }
       }
     },
@@ -1459,6 +1498,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseDataParsing,
+  updateResponseDataParsingMode,
   updateResponseScript,
   updateRequestTests,
   updateRequestMethod,

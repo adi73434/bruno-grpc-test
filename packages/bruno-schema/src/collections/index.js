@@ -89,11 +89,117 @@ const requestBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+// "*" and HTTP status codes
+const protobufStatusSelection = [
+  '*',
+  '100',
+  '101',
+  '102',
+  '103',
+  '200',
+  '201',
+  '202',
+  '203',
+  '204',
+  '205',
+  '206',
+  '207',
+  '208',
+  '226',
+  '300',
+  '301',
+  '302',
+  '303',
+  '304',
+  '305',
+  '306',
+  '307',
+  '308',
+  '400',
+  '401',
+  '402',
+  '403',
+  '404',
+  '405',
+  '406',
+  '407',
+  '408',
+  '409',
+  '410',
+  '411',
+  '412',
+  '413',
+  '414',
+  '415',
+  '416',
+  '417',
+  '418',
+  '421',
+  '422',
+  '423',
+  '424',
+  '425',
+  '426',
+  '428',
+  '429',
+  '431',
+  '451',
+  '500',
+  '501',
+  '502',
+  '503',
+  '504',
+  '505',
+  '506',
+  '507',
+  '508',
+  '510',
+  '511'
+];
+
+// Match `a.b.c`, where a/b/c must be at least 1 char
+const regexProtoIdentifier = /^[A-Za-z]{1,}\.[A-Za-z]{1,}\.[A-Za-z]{1,}$/;
+
+// Valid example:
+// proto: {
+//   "*": "file.package.message",
+//   200: "file.package.message",
+//   "400": "a.b.c"
+// }
 const dataParsingSchema = Yup.object({
-  proto: Yup.string().nullable()
+  proto: Yup.object().test({
+    // name: Yup.mixed().oneOf(httpStatusCodes),
+    name: 'asdfasdfasdf',
+    test(obj, ctx) {
+      // Not required
+      if (!obj) {
+        return true;
+      }
+
+      const keys = Object.keys(obj);
+
+      for (let i = 0; i !== keys.length; i++) {
+        const key = keys[i];
+        if (!protobufStatusSelection.includes(key.toString())) {
+          return ctx.createError({ message: 'Invalid status selected' });
+        }
+        if (!regexProtoIdentifier.test(obj[key])) {
+          return ctx.createError({ message: 'Invalid protobuf identifier format' });
+        }
+      }
+
+      return true;
+    }
+  })
 })
-  .noUnknown(true)
+  .notRequired()
   .strict();
+
+// const dataParsingSchema = Yup.object({
+//   // proto: Yup.array().of(dataParsingProtoSchema)
+//   proto: Yup.string()
+// })
+// .strict()
 
 const authAwsV4Schema = Yup.object({
   accessKeyId: Yup.string().nullable(),
@@ -202,7 +308,11 @@ const requestSchema = Yup.object({
   params: Yup.array().of(keyValueSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
-  dataParsing: dataParsingSchema,
+  // dataParsing: dataParsingSchema,
+  dataParsing: Yup.object({
+    mode: Yup.string().oneOf(['none', 'proto']),
+    proto: Yup.string().notRequired()
+  }),
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()
@@ -264,5 +374,6 @@ module.exports = {
   itemSchema,
   environmentSchema,
   environmentsSchema,
-  collectionSchema
+  collectionSchema,
+  dataParsingSchema
 };

@@ -18,6 +18,7 @@ import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 import DataParsing from './DataParsing/index';
+import DataParsingMode from './DataParsing/DataParsingMode/index';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -124,6 +125,11 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           <TestResultsLabel results={item.testResults} assertionResults={item.assertionResults} />
         </div>
+        {focusedTab.responsePaneTab === 'dataParsing' ? (
+          <div className="flex flex-grow justify-end items-center">
+            <DataParsingMode item={item} collection={collection} />
+          </div>
+        ) : null}
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             <ResponseClear item={item} collection={collection} />
