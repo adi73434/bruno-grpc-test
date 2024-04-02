@@ -168,7 +168,10 @@ const jsonToBru = (json) => {
     headers: _.get(json, 'request.headers', []),
     auth: _.get(json, 'request.auth', {}),
     body: _.get(json, 'request.body', {}),
-    dataParsing: _.get(json, 'request.dataParsing', {}),
+    dataParsing: {
+      mode: _.get(json, 'request.dataParsing.mode', {}),
+      proto: _.get(json, 'request.dataParsing.proto', {})
+    },
     script: _.get(json, 'request.script', {}),
     vars: {
       req: _.get(json, 'request.vars.req', []),

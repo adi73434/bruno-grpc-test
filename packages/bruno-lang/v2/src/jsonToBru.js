@@ -167,6 +167,14 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
     }
   }
 
+  if (dataParsing && dataParsing.mode && dataParsing.mode.length) {
+    bru += `dataParsing:mode {
+${indentString(dataParsing.mode)}
+}
+
+`;
+  }
+
   if (dataParsing && dataParsing.proto && dataParsing.proto.length) {
     bru += `dataParsing:proto {
 ${indentString(dataParsing.proto)}

@@ -22,9 +22,10 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | dataParsing | script | tests | docs)*
+  BruFile = (meta | http | query | headers | auths | bodies | dataParsings | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
   bodies = bodyjson | bodyproto | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  dataParsings = dataParsingProto | dataParsingMode
   bodyforms = bodyformurlencoded | bodymultipart
 
   nl = "\\r"? "\\n"
@@ -95,7 +96,8 @@ const grammar = ohm.grammar(`Bru {
   bodymultipart = "body:multipart-form" dictionary
 
   dataParsing = "dataParsing" st* "{" nl* textblock tagend
-  dataParsingproto = "dataParsing:proto" st* "{" nl* textblock tagend
+  dataParsingMode = "dataParsing:mode" st* "{" nl* textblock tagend
+  dataParsingProto = "dataParsing:proto" st* "{" nl* textblock tagend
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -508,17 +510,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  dataParsing(_1, _2, _3, _4, textblock, _5) {
+  dataParsingMode(_1, _2, _3, _4, textblock, _5) {
     return {
-      http: {
-        dataParsingMode: 'proto'
-      },
       dataParsing: {
-        proto: outdentString(textblock.sourceString)
+        mode: outdentString(textblock.sourceString)
       }
     };
   },
-  dataParsingproto(_1, _2, _3, _4, textblock, _5) {
+  dataParsingProto(_1, _2, _3, _4, textblock, _5) {
     return {
       dataParsing: {
         proto: outdentString(textblock.sourceString)
