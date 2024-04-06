@@ -67,7 +67,7 @@ const ProtoFiles = ({ collection }) => {
           <input
             id="protoFiles"
             type="file"
-            // accept=".proto"
+            accept=".proto"
             name="protoFiles"
             className="block"
             onChange={(e) => getFiles(e.target)}
