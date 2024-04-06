@@ -61,20 +61,7 @@ const ProtoFiles = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-1 h-full w-full relative">
-      {existingProtos.map((file, idx) => {
-        return (
-          <div key={idx}>
-            <button
-              className="btn-add-header text-link pr-2 py-0 mt-0 select-none"
-              onClick={() => removeExistingProtoFile(file)}
-            >
-              Remove -
-            </button>
-            <span>{file}</span>
-          </div>
-        );
-      })}
-      <h1 className="font-semibold mt-8 mb-2">Add protobuf files</h1>
+      <h1 className="font-semibold mb-2">Add protobuf files</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <input
@@ -97,6 +84,20 @@ const ProtoFiles = ({ collection }) => {
           </button>
         </div>
       </form>
+      <h1 className="font-semibold mt-8 mb-2">Current files</h1>
+      {existingProtos.map((file, idx) => {
+        return (
+          <div key={idx}>
+            <button
+              className="btn-add-header text-link pr-2 py-0 mt-1 select-none"
+              onClick={() => removeExistingProtoFile(file)}
+            >
+              Remove -
+            </button>
+            <span>{file}</span>
+          </div>
+        );
+      })}
     </StyledWrapper>
   );
 };
