@@ -1,0 +1,43 @@
+meta {
+  name: register
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:6969/account/auth/register
+  body: proto
+  auth: none
+}
+
+dataParsing:mode {
+  proto
+}
+
+dataParsing:proto {
+  {
+    "*": "ret_error.ret_error.ErrWithMsgInputVal",
+    "200": "ret_account_auth.ret_account_auth.RegisterSuccess"
+  }
+}
+
+body:json {
+  {
+    "field": "val"
+  }
+}
+
+body:proto {
+  {
+    "req_account_auth.req_account_auth.Register": {
+      "email": "c@b.c",
+      "username": "c@b.c",
+      "password": "password1234",
+      "passwordConfirm": "password1234"
+    }
+  }
+}
+
+body:text {
+  nyaandemonaiii
+}

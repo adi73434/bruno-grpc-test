@@ -1,0 +1,41 @@
+meta {
+  name: login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:6969/account/auth/login
+  body: proto
+  auth: none
+}
+
+dataParsing:mode {
+  proto
+}
+
+dataParsing:proto {
+  {
+    "*": "ret_error.ret_error.ErrWithMsgInputVal",
+    "200": "ret_account_auth.ret_account_auth.LoginSuccess"
+  }
+}
+
+body:json {
+  {
+    "field": "val"
+  }
+}
+
+body:proto {
+  {
+    "req_account_auth.req_account_auth.Login": {
+      "email": "b@b.c",
+      "password": "password1234"
+    }
+  }
+}
+
+body:text {
+  nyaandemonaiii
+}
