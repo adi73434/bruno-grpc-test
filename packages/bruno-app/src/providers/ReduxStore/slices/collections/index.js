@@ -775,27 +775,6 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
-          console.log('setting request dataParsing.mode');
           item.draft.request.dataParsing.mode = action.payload.mode;
         }
       }

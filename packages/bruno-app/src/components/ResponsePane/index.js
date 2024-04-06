@@ -26,7 +26,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
-  // bodyMode for the request
+  // Required for <DataParsing/>
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
 
   const selectTab = (tab) => {
