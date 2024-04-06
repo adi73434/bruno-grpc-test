@@ -269,14 +269,9 @@ const parseDataFromResponse = (response, collectionPath, originalRequest) => {
   //
   // If something goes wrong, we don't fall back to text/JSON as the user should know.
   //
-  // NOTE: If other formats are implemented, a user could hypothetically
-  // have `dataParsing.proto` and `dataParsing.capnproto` defined.
-  // - If we we want to maintain the user's ability to ignore the server's
-  // "Content-Type", the user will need to specify something like `dataParsing.mode`.
-  // - `dataParsing.mode` could be: "use-server", "proto", or "capnproto"
-  // - "use-server" will select the decoder based on "Content-Type".
-  // - "use-server" will *not* override the "protobuf schema priority" in `decodeProtobuf()`
-  if (contentTypesProtobuf.includes(mediaTypeNoParameters) || originalRequest.dataParsing.proto) {
+  // NOTE: This is greedily checking for protobuf, but if other formats are implemented,
+  // some option could be used to decide only based on Content-Type
+  if (contentTypesProtobuf.includes(mediaTypeNoParameters) || originalRequest.dataParsing.mode === 'proto') {
     return {
       data: decodeProtobuf(response, collectionPath, originalRequest, dataBuffer),
       dataBuffer: dataBuffer

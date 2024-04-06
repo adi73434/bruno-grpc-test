@@ -13,7 +13,7 @@ const contentTypesProtobuf = ['application/vnd.google.protobuf', 'application/x-
 //
 // This is the Content-Type that will be used when sending.
 //
-// TODO: Not sure how to go about using this in `/packages/bruno-app`,
+// REVIEW: Not sure how to go about using this in `/packages/bruno-app`,
 // in places where "application/x-protobuf" is hard-coded.
 // Maybe this file should be in `/packages/bruno-common` ??
 //
@@ -127,6 +127,7 @@ const encodeProtobuf = (request, collectionPath) => {
  *
  * @returns Decoded `data` JSON
  *
+ * @throws If provided dataParsing.proto has an invalid JSON string
  * @throws If no protobuf schema string provided
  * @throws If protobuf schema string is not formatted as `file.package.message`
  * @throws If protobuf `file` is not imported into Bruno,
@@ -135,23 +136,33 @@ const encodeProtobuf = (request, collectionPath) => {
  * it is re-thrown here to provide context as protobuf decoding errors can seem cryptic.
  */
 const decodeProtobuf = (response, collectionPath, originalRequest, dataBuffer) => {
-  // UX reasoning:
+  let protoParsingSpec;
   let protoSchemaString;
-  let userDefinedProto = undefined;
+  let userDefinedProto;
+
+  try {
+    // Stored as string in redux.
+    protoParsingSpec = JSON.parse(originalRequest.dataParsing.proto || '{}');
+  } catch (e) {
+    // Re-throwing because a regular JSON exception won't tell user
+    // it's caused by their dataParsing input
+    throw `[Decoding] Data Parsing JSON invalid: ${e}
+      .......... [[Raw data buffer]]: ${dataBuffer}`;
+  }
 
   // Can be undefined, hence ?
   if (response.headers['proto']?.length > 0) {
     protoSchemaString = response.headers['proto'];
   }
 
-  // .proto might be undefined/null, and .proto[foo] might be undefined, hence ? both
-  if (originalRequest.dataParsing.proto?.['*']?.length > 0) {
+  // .proto[foo] might be undefined, hence ?
+  if (protoParsingSpec?.['*']?.length > 0) {
     userDefinedProto = 'wildcard (*)';
-    protoSchemaString = originalRequest.dataParsing.proto['*'];
+    protoSchemaString = protoParsingSpec['*'];
   }
-  if (originalRequest.dataParsing.proto?.[response.status]?.length > 0) {
+  if (protoParsingSpec?.[response.status]?.length > 0) {
     userDefinedProto = `status ${response.status}`;
-    protoSchemaString = originalRequest.dataParsing.proto[response.status];
+    protoSchemaString = protoParsingSpec[response.status];
   }
 
   // [file, package, message]

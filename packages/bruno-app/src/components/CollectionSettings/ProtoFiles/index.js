@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 
 const ProtoFiles = ({ collection }) => {
-  const [existingProtos, setExistingProtos] = useState(['asdf']);
+  const [existingProtos, setExistingProtos] = useState([]);
   const { ipcRenderer } = window;
 
   const listExistingProtoFiles = async () => {
@@ -76,11 +76,7 @@ const ProtoFiles = ({ collection }) => {
       })}
       <h1 className="font-semibold mt-8 mb-2">Add protobuf files</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        {/* TODO: Style */}
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="protoFiles">
-            Proto Files
-          </label>
           <input
             id="protoFiles"
             type="file"
